@@ -20,8 +20,61 @@ function! MdMakeHeader(character)
   endif
 endfunction
 
-function! MdFixOrderedList()
+function! MdMakeBold()
   echo ""
+  call MdMarkLine('**')
+endfunction
+
+function! MdMarkLine(character)
+  let line = substitute(getline("."), "\\s\\+$", "", "")
+  let newLine = substitute(line, ".*", a:character.'\0'.a:character, "")
+  call setline(".", newLine)
+endfunction
+
+function! MdMakeCodeBlock()
+  echo ""
+  let z = '`>' | normal @z
+  let lastLine = line(".")
+  let z = '`<^' | normal @z
+
+  let line = line(".")
+  while line > lastLine
+    let newLine = substitute(getline(line), ".*", '    \0', "")
+    call setline(line, newLine)
+
+    let line = line + 1
+  endwhile
+
+  let newLine = substitute(getline(line), ".*", '    \0', "")
+  call setline(line, newLine)
+endfunction
+
+function! MdMakeUnorderedList()
+  echo ""
+  let line = line(".")
+  while getline(line) !~ "^\\s*$"
+    let newLine = substitute(getline(line), ".*", '* \0', "")
+    call setline(line, newLine)
+
+    let line = line + 1
+  endwhile
+endfunction
+
+function! MdMakeOrderedList()
+  echo ""
+  let cnt = 1
+  let line = line(".")
+  while getline(line) !~ "^\\s*$"
+    let newLine = substitute(getline(line), ".*", cnt.'. \0', "")
+    call setline(line, newLine)
+
+    let cnt = cnt + 1
+    let line = line + 1
+  endwhile
+endfunction
+
+function! MdFixOrderedList()
+  echo "asdf"
   let ltop = line(".")
   while getline(ltop) =~ "^\\s*[0-9]\\+\\." || 
       \ (getline(ltop) =~ "^\\s" && getline(ltop) !~ "^\\s*$")
@@ -102,9 +155,13 @@ function! MdFold()
 endfunction
 
 " Shortcuts
+vmap <buffer> qc :call MdMakeCodeBlock()<CR>
+nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
+nmap <buffer> qlo :call MdMakeOrderedList()<CR>
+nmap <buffer> qb :call MdMakeBold()<CR>
 nmap <buffer> q= :call MdMakeH1()<CR>
 nmap <buffer> q- :call MdMakeH2()<CR>
-nmap <buffer> ql :call MdFixOrderedList()<CR>
+nmap <buffer> qlf :call MdFixOrderedList()<CR>
 nmap <buffer> qz :call MdFold()<CR>
 nmap <buffer> qp :!mdprev %<CR><CR>
 nmap <buffer> qP :!mdprev --pdf %<CR><CR>
