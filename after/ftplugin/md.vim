@@ -20,9 +20,85 @@ function! MdMakeHeader(character)
   endif
 endfunction
 
+function! MdMarkTerm(character, ...)
+  let origPos = getpos('.')
+  let characterEnd = a:character
+
+  if a:0 > 0
+    let characterEnd = a:1
+  endif
+
+  " mark word boundaries using 'surround' plugin
+  let @z = 'ysiwx' | normal @z
+  
+  call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
+
+  let posOffset = strlen(a:character)
+  if a:0 > 1
+    let posOffset = a:2
+  endif
+
+  " put cursor back where it was before (relatively)
+  let newPos = [origPos[0], origPos[1], col("'<") + posOffset, origPos[3]]
+  call setpos('.', newPos)
+endfunction
+
+function! MdCreateLinkPromptUri(character, ...)
+  let origPos = getpos('.')
+  
+  let characterEnd = a:character
+
+  if a:0 > 0
+    let characterEnd = a:1
+  endif
+
+  let @z = '' | normal @z
+
+  call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
+
+  let posOffset = strlen(a:character)
+  if a:0 > 1
+    let posOffset = a:2
+  endif
+
+  " put cursor back where it was before (relatively)
+  let newPos = [origPos[0], origPos[1], col("'>") + posOffset + strlen(characterEnd), origPos[3]]
+  call setpos('.', newPos)
+endfunction
+
+function! MdMarkTermExt(lineIndex, start, stop, characterStart, characterEnd)
+  let lineContent = getline(a:lineIndex)
+
+  " break up the line; segregate the term under the cursor
+  let preTerm = strpart(lineContent, 0, a:start - 1)
+  let term = strpart(lineContent, a:start - 1, a:stop - a:start + 1)
+  let postTerm = strpart(lineContent, a:stop, strlen(lineContent) - a:stop)
+
+  " surround term with character(s)
+  call setline(a:lineIndex, preTerm . a:characterStart . term . a:characterEnd . postTerm)
+endfunction
+
+function! MdMarkInlineCode()
+  echo ""
+  call MdMarkTerm('`')
+endfunction
+
 function! MdMakeBold()
   echo ""
-  call MdMarkLine('**')
+  call MdMarkTerm('**')
+endfunction
+
+function! MdMakeLink(mode)
+  if a:mode == 'n'
+    call MdMarkTerm('[](', ')', 1)
+  elseif a:mode == 'v'
+    if stridx('' . @+, 'http') == 0
+      call MdCreateLinkPromptUri('[', '](' . @+ . ')', 3)
+    else
+      call MdCreateLinkPromptUri('[', ']()')
+      startinsert
+    endif
+  endif
 endfunction
 
 function! MdMarkLine(character)
@@ -33,9 +109,9 @@ endfunction
 
 function! MdMakeCodeBlock()
   echo ""
-  let z = '`>' | normal @z
+  let @z = '`>' | normal @z
   let lastLine = line(".")
-  let z = '`<^' | normal @z
+  let @z = '`<^' | normal @z
 
   let line = line(".")
   while line > lastLine
@@ -156,6 +232,11 @@ endfunction
 
 " Shortcuts
 vmap <buffer> qc :call MdMakeCodeBlock()<CR>
+vmap <buffer> qk :call MdMakeLink('v')<CR>
+
+"nunmap <buffer> qk
+nmap <buffer> qk :call MdMakeLink('n')<CR>i
+nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
 nmap <buffer> qb :call MdMakeBold()<CR>
