@@ -20,6 +20,23 @@ function! MdMakeHeader(character)
   endif
 endfunction
 
+function! MdSelectTerm()
+  " mark word boundaries using 'surround' plugin
+  " let @z = 'ysiwx' | normal @z
+  " echo expand('<cWORD>')
+  if col('.') > 1
+    let @z = '?\(\s\|^\)\@<=[^[:space:]]*kjv' | normal @z
+  else
+    let @z = 'v' | normal @z
+  endif
+  let startCol = col('.')
+
+  let @z = '/[^[:space:]]*\(\s\|$\)\@!kj' | normal @z
+  let stopCol = col('.')
+
+  echo ""
+endfunction
+
 function! MdMarkTerm(character, ...)
   let origPos = getpos('.')
   let characterEnd = a:character
@@ -29,8 +46,8 @@ function! MdMarkTerm(character, ...)
   endif
 
   " mark word boundaries using 'surround' plugin
-  let @z = 'ysiwx' | normal @z
-  
+  call MdSelectTerm()
+
   call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
 
   let posOffset = strlen(a:character)
@@ -88,6 +105,22 @@ function! MdMakeBold()
   call MdMarkTerm('**')
 endfunction
 
+function! MdMakeImg(mode, ...)
+  let path = ''
+  if a:0 > 0
+    let path = a:1
+  endif
+
+  if a:mode == 'n'
+    call MdMarkTerm('![](' . path, ')', 2)
+    " let @z = '`>' . (strlen(path) + 5) . 'l' | normal @z
+  elseif a:mode == 'i'
+    call MdMarkTerm('![](' . path, ')', 2)
+    startinsert
+  endif
+
+endfunction
+
 function! MdMakeLink(mode)
   if a:mode == 'n'
     call MdMarkTerm('[](', ')', 1)
@@ -109,18 +142,7 @@ endfunction
 
 function! MdMakeCodeBlock()
   echo ""
-  let @z = '`>' | normal @z
-  let lastLine = line(".")
-  let @z = '`<^' | normal @z
-
   let line = line(".")
-  while line > lastLine
-    let newLine = substitute(getline(line), ".*", '    \0', "")
-    call setline(line, newLine)
-
-    let line = line + 1
-  endwhile
-
   let newLine = substitute(getline(line), ".*", '    \0', "")
   call setline(line, newLine)
 endfunction
@@ -150,7 +172,7 @@ function! MdMakeOrderedList()
 endfunction
 
 function! MdFixOrderedList()
-  echo "asdf"
+  echo ""
   let ltop = line(".")
   while getline(ltop) =~ "^\\s*[0-9]\\+\\." || 
       \ (getline(ltop) =~ "^\\s" && getline(ltop) !~ "^\\s*$")
@@ -235,6 +257,8 @@ vmap <buffer> qc :call MdMakeCodeBlock()<CR>
 vmap <buffer> qk :call MdMakeLink('v')<CR>
 
 "nunmap <buffer> qk
+nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
+nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
