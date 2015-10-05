@@ -35,20 +35,16 @@ function! MdSelectTerm(...)
 
   let atWordBoundary = (match(strpart(getline('.'), col('.')-2, 1), '[' . reTermBoundaries . ']') == 0)
   if(col('.') > 1 && !atWordBoundary)
-    let @z = '?\([' . reTermBoundaries . ']\|^\)\@<=[^' . reTermBoundaries . ']*kj' | normal @z
-    " execute '?\([' . reTermBoundaries . ']\|^\)\@<=[^' . reTermBoundaries . ']*'
-  else
-    let @z = '' | normal @z
+    call search('\([' . reTermBoundaries . ']\|^\)\@<=[^' . reTermBoundaries . ']*', 'bW')
   endif
   let startCol = col('.')
   let @z = 'v' | normal @z
 
   let atWordBoundary = (match(strpart(getline('.'), col('.'), 1), '[' . reTermBoundaries . ']') == 0)
   if(!atWordBoundary)
-    let @z = '/[^' . reTermBoundaries . ']*\([' . reTermBoundaries . ']\|$\)\@!kj' | normal @z
+    call search('[^' . reTermBoundaries . ']*\([' . reTermBoundaries . ']\|$\)\@!', 'W')
   endif
   let stopCol = col('.')
-  echo stopCol
 
   if(a:0 == 0 || (a:0 > 1 && a:2 != 'true'))
     let @z = '' | normal @z
@@ -66,9 +62,9 @@ function! MdMarkTerm(character, ...)
   endif
 
   " mark word boundaries using 'surround' plugin
-  call MdSelectTerm('', 'true')
+  let bounds = MdSelectTerm()
 
-  call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
+  call MdMarkTermExt(origPos[1], bounds[0], bounds[1], a:character, characterEnd)
 
   let posOffset = strlen(a:character)
   if a:0 > 1
