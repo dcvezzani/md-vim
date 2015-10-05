@@ -20,21 +20,41 @@ function! MdMakeHeader(character)
   endif
 endfunction
 
-function! MdSelectTerm()
+" a:1 - re for additional term boundaries
+" a:2 - leave term selected
+function! MdSelectTerm(...)
+  echo ""
   " mark word boundaries using 'surround' plugin
   " let @z = 'ysiwx' | normal @z
   " echo expand('<cWORD>')
-  if col('.') > 1
-    let @z = '?\(\s\|^\)\@<=[^[:space:]]*kjv' | normal @z
+  let reTermBoundaries = '[:space:]'
+
+  if(a:0 > 0 && strlen(a:1) > 0)
+    let reTermBoundaries = '[:space:]' . a:1
+  endif
+
+  let atWordBoundary = (match(strpart(getline('.'), col('.')-2, 1), '[' . reTermBoundaries . ']') == 0)
+  if(col('.') > 1 && !atWordBoundary)
+    let @z = '?\([' . reTermBoundaries . ']\|^\)\@<=[^' . reTermBoundaries . ']*kj' | normal @z
+    " execute '?\([' . reTermBoundaries . ']\|^\)\@<=[^' . reTermBoundaries . ']*'
   else
-    let @z = 'v' | normal @z
+    let @z = '' | normal @z
   endif
   let startCol = col('.')
+  let @z = 'v' | normal @z
 
-  let @z = '/[^[:space:]]*\(\s\|$\)\@!kj' | normal @z
+  let atWordBoundary = (match(strpart(getline('.'), col('.'), 1), '[' . reTermBoundaries . ']') == 0)
+  if(!atWordBoundary)
+    let @z = '/[^' . reTermBoundaries . ']*\([' . reTermBoundaries . ']\|$\)\@!kj' | normal @z
+  endif
   let stopCol = col('.')
+  echo stopCol
 
-  echo ""
+  if(a:0 == 0 || (a:0 > 1 && a:2 != 'true'))
+    let @z = '' | normal @z
+  endif
+  
+  return [startCol, stopCol]
 endfunction
 
 function! MdMarkTerm(character, ...)
@@ -46,7 +66,7 @@ function! MdMarkTerm(character, ...)
   endif
 
   " mark word boundaries using 'surround' plugin
-  call MdSelectTerm()
+  call MdSelectTerm('', 'true')
 
   call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
 
@@ -60,22 +80,30 @@ function! MdMarkTerm(character, ...)
   call setpos('.', newPos)
 endfunction
 
-function! MdCreateLinkPromptUri(character, ...)
+function! MdCreateLinkPromptUri(...)
+  call call("MdMarkTerms", a:000)
+endfunction
+
+function! MdMarkTerms(...)
   let origPos = getpos('.')
   
-  let characterEnd = a:character
-
   if a:0 > 0
-    let characterEnd = a:1
+    let characterBegin = a:1
+  endif
+
+  let characterEnd = characterBegin
+
+  if a:0 > 1
+    let characterEnd = a:2
   endif
 
   let @z = '' | normal @z
 
-  call MdMarkTermExt(origPos[1], col("'<"), col("'>"), a:character, characterEnd)
+  call MdMarkTermExt(origPos[1], col("'<"), col("'>"), characterBegin, characterEnd)
 
-  let posOffset = strlen(a:character)
-  if a:0 > 1
-    let posOffset = a:2
+  let posOffset = strlen(characterBegin)
+  if a:0 > 2
+    let posOffset = a:3
   endif
 
   " put cursor back where it was before (relatively)
@@ -100,9 +128,17 @@ function! MdMarkInlineCode()
   call MdMarkTerm('`')
 endfunction
 
-function! MdMakeBold()
-  echo ""
-  call MdMarkTerm('**')
+" function! MdMakeBold()
+"   echo ''
+"   call MdMarkTerm('**')
+" endfunction
+
+function! MdMakeBold(mode)
+  if a:mode == 'n'
+    call MdMarkTerm('**', '**', 1)
+  elseif a:mode == 'v'
+    call MdMarkTerms('**', '**', 3)
+  endif
 endfunction
 
 function! MdMakeImg(mode, ...)
@@ -144,6 +180,64 @@ function! MdMakeCodeBlock()
   echo ""
   let line = line(".")
   let newLine = substitute(getline(line), ".*", '    \0', "")
+  call setline(line, newLine)
+endfunction
+
+function! MdCopyFootnoteReference()
+  let line = line(".")
+  " http://vimdoc.sourceforge.net/htmldoc/pattern.html#/\zs
+  let ref = matchstr(getline(line), '\"\zs\(\([^\"0-9]\+\)-\(\d\+\)\)\ze\"')
+  let refNum = matchstr(getline(line), '\"\(\([^\"0-9]\+\)-\zs\(\d\+\)\ze\)\"')
+  let @t = '<sup>[' . refNum . '](#' . ref .')</sup>'
+  echo 'copied footnote reference: ' . @t
+endfunction
+
+function! MdPasteFootnoteReference()
+  let curLine = line('.')
+  if(match(@t, '^<sup>') == 0)
+    let startStopPoints = MdSelectTerm()
+    " echo startStopPoints[1]
+    let curPos = getpos('.')
+    call setpos('.', [curPos[0], curLine, startStopPoints[1], curPos[3]])
+    let @z = '"tp' | normal @z
+  endif
+endfunction
+
+function! MdMakeFootnotes(mode)
+  echo ""
+  if a:mode == 'v'
+    call MdMakeFootnotesVis()
+  else
+    call MdMakeFootnotesNorm()
+  endif
+endfunction
+
+function! MdMakeFootnotesNorm(...)
+  echo ""
+  let b:mdMakeFootnotesNorm_offset = 0
+
+  if a:0 > 0
+    let b:mdMakeFootnotesNorm_offset = a:1 - 1
+  else
+    let curLine = line('.')
+    let curLineContent = getline(curLine)
+
+    let startCnt = matchstr(curLineContent, '^\d\+')
+    if strlen(startCnt) > 0
+      let b:mdMakeFootnotesNorm_offset = 0+startCnt - 1
+      call setline('.', substitute(curLineContent, '^\d\+', '', ''))
+    endif
+  endif
+  
+  " http://vimdoc.sourceforge.net/htmldoc/pattern.html#/\zs
+  " https://www.reddit.com/r/vim/comments/1t8q9k/how_do_i_increment_numbers_on_concecutive_lines/
+  let @z = 'gv:s/[\*[:space:]]*<a name=\"footnote-\zs\d\+/\=' . "(b:mdMakeFootnotesNorm_offset + line('.')" . '-line("' . "'" . '<")+1)/gv:s/^[\*[:space:]]*<a name=\"footnote-\d\+\">\zs\d\+/\=' . "(b:mdMakeFootnotesNorm_offset + line('.')" . '-line("' . "'" . '<")+1)/`<' | normal @z
+endfunction
+
+function! MdMakeFootnotesVis()
+  echo ""
+  let line = line(".")
+  let newLine = substitute(getline(line), ".*", '* <a name="footnote-' . line . '">' . line . '</a>: \0', "")
   call setline(line, newLine)
 endfunction
 
@@ -252,18 +346,51 @@ function! MdFold()
   set foldlevel=0
 endfunction
 
+function! MdReplaceSubstring(line, subString, startPos, endPos)
+  let srcString = getline(a:line)
+  if strlen(a:subString) > 0
+    let curPos = getpos('.')
+    let preString = strpart(srcString, 0, a:startPos-1)
+    let postString = strpart(srcString, a:endPos, strlen(srcString))
+    call setline(a:line, preString . a:subString . postString)
+    call setpos('.', [curPos[0], a:line, strlen(preString) + strlen(a:subString), curPos[3]])
+  endif
+endfunction
+
+function! MdResolveSnippet()
+  echo ""
+
+  let bounds = MdSelectTerm('()\[\]<>\"', 'false')
+  let term = strpart(getline('.'), bounds[0]-1, bounds[1]-(bounds[0]-1))
+
+  let newTerm = ''
+  if term == 'ds'
+    let newTerm = substitute(term, '.*', strftime("%Y-%m-%d"), '')
+  elseif term == 'dts'
+    let newTerm = substitute(term, '.*', strftime("%Y-%m-%dT%H:%M:%S"), '')
+  endif
+
+  call MdReplaceSubstring(line('.'), newTerm, bounds[0], bounds[1])
+endfunction
+
 " Shortcuts
+vmap <buffer> qf :call MdMakeFootnotes('v')<CR>
 vmap <buffer> qc :call MdMakeCodeBlock()<CR>
 vmap <buffer> qk :call MdMakeLink('v')<CR>
+vmap <buffer> qb :call MdMakeBold('v')<CR>
 
 "nunmap <buffer> qk
+nmap <buffer> qj :call MdResolveSnippet()<CR>
+nmap <buffer> qt :call MdCopyFootnoteReference()<CR>
+nmap <buffer> qr :call MdPasteFootnoteReference()<CR>
+nmap <buffer> <silent> qf :call MdMakeFootnotes('n')<CR>
 nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
 nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
-nmap <buffer> qb :call MdMakeBold()<CR>
+nmap <buffer> qb :call MdMakeBold('n')<CR>
 nmap <buffer> q= :call MdMakeH1()<CR>
 nmap <buffer> q- :call MdMakeH2()<CR>
 nmap <buffer> qlf :call MdFixOrderedList()<CR>
