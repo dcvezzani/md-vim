@@ -1,0 +1,62 @@
+*Markdown* shortcuts for marking up documents
+
+  __  __            _       _                     ~
+ |  \/  |          | |     | |                    ~
+ | \  / | __ _ _ __| | ____| | _____      ___ __  ~
+ | |\/| |/ _` | '__| |/ / _` |/ _ \ \ /\ / / '_ \ ~
+ | |  | | (_| | |  |   < (_| | (_) \ V  V /| | | |~
+ |_|  |_|\__,_|_|  |_|\_\__,_|\___/ \_/\_/ |_| |_|~
+
+Easily create markdown documentation.
+
+====================================================================
+CONTENTS                                            *MarkdownContents*
+
+    1. Usage ................ |MarkdownUsage|
+    2. Mappings ............. |MarkdownMappings|
+    2. Blah ................. |MarkdownBlah2|
+
+====================================================================
+Section 1: Usage                                       *MarkdownUsage*
+
+This plugin with automatically provide syntax highlighting for
+Markdown files (files ending in .md).
+
+It also provides some shortcuts that could be useful in writing your own
+Markdown documents.
+
+====================================================================
+Section 2: Mappings                                 *MarkdownMappings*
+
+Visual shortcuts
+
+  vmap <buffer>          qtf    :call MdMakeFootnotes('v')<CR>
+  vmap <buffer>          qc     :call MdMakeCodeBlock()<CR>
+  vmap <buffer>          qk     :call MdMakeLink('v')<CR>
+  vmap <buffer>          qb     :call MdMakeBold('v')<CR>
+
+Normal shortcuts
+
+  nmap <buffer>          qfc    :call MdCapitalizeFirstLetterInWords()<CR>
+  nmap <buffer>          qj     :call MdResolveSnippet()<CR>
+  nmap <buffer>          qtt    :call MdCopyFootnoteReference()<CR>
+  nmap <buffer>          qtr    :call MdPasteFootnoteReference()<CR>
+  nmap <buffer> <silent> qtf    :call MdMakeFootnotes('n')<CR>
+  nmap <buffer>          qi     :call MdMakeImg('n', 'images/')<CR>
+  nmap <buffer>          qI     :call MdMakeImg('i', 'images/')<CR>
+  nmap <buffer>          qk     :call MdMakeLink('n')<CR>i
+  nmap <buffer>          qc     :call MdMarkInlineCode()<CR>
+  nmap <buffer>          qlu    :call MdMakeUnorderedList()<CR>
+  nmap <buffer>          qlo    :call MdMakeOrderedList()<CR>
+  nmap <buffer>          qb     :call MdMakeBold('n')<CR>
+  nmap <buffer>          q=     :call MdMakeH1()<CR>
+  nmap <buffer>          q-     :call MdMakeH2()<CR>
+  nmap <buffer>          qlf    :call MdFixOrderedList()<CR>
+  nmap <buffer>          qz     :call MdFold()<CR>
+  nmap <buffer>          qp     !mdprev %<CR><CR>
+  nmap <buffer>          qP     !mdprev --pdf %<CR><CR>
+
+====================================================================
+Section 3: Blah                                 *MarkdownBlah2*
+
+blah

@@ -166,6 +166,25 @@ function! MdMakeLink(mode)
   endif
 endfunction
 
+function! MdSplitOnBounds(strValue, start, stop)
+  let preTerm = strpart(a:strValue, 0, a:start - 1)
+  let term = strpart(a:strValue, a:start - 1, a:stop - a:start + 1)
+  let postTerm = strpart(a:strValue, a:stop, strlen(a:strValue) - a:stop)
+  return [preTerm, term, postTerm]
+endfunction
+
+function! MdMakeLinkUsingCurrentTerm(mode)
+  let bounds = MdSelectTerm('\/')
+  let strParts = MdSplitOnBounds(getline('.'), bounds[0], bounds[1])
+  let newTerm = MdTitlizeWords(strParts[1])
+
+  call MdMakeLink(a:mode)
+  let curPos = getpos('.')
+  let @+ = newTerm
+  let @z = 'h"+p' | normal @z
+  call setpos('.', [curPos[0], curPos[1]+1, 0, curPos[3]])
+endfunction
+
 function! MdMarkLine(character)
   let line = substitute(getline("."), "\\s\\+$", "", "")
   let newLine = substitute(line, ".*", a:character.'\0'.a:character, "")
@@ -369,20 +388,117 @@ function! MdResolveSnippet()
   call MdReplaceSubstring(line('.'), newTerm, bounds[0], bounds[1])
 endfunction
 
+function! MdGetSelectedTerm()
+  let selectedTerm = strpart(getline('.'), col("'<")-1, col("'>")-(col("'<")-1))
+  let startPos = col("'<")
+  let endPos = col("'>")
+  return [selectedTerm, startPos, endPos]
+endfunction
+
+" ('n', '', [regex, replace, flags])               normal: apply to entire current line
+" ('v', '', [regex, replace, flags])               visual: get term from current selection
+" ('', selectedTerm, [regex, replace, flags])      apply to given term
+function! MdModifyTerms(mode, ...)
+  let regex = a:2[0]
+  let replace = a:2[1]
+  let flags = a:2[2]
+  
+  if(a:mode == 'v') "if applying to selection
+    let selectedTermInfo = MdGetSelectedTerm()
+    let selectedTerm = selectedTermInfo[0]
+    let startPos = selectedTermInfo[1]
+    let endPos = selectedTermInfo[2]
+
+    let newSelectedTerm = substitute(selectedTerm, regex, replace, flags)
+    call MdReplaceSubstring(line('.'), newSelectedTerm, startPos, endPos)
+
+  elseif(a:mode == 'n') "if applying to current line
+    let newLine = substitute(getline("."), regex, replace, flags)
+    echo newLine
+    call setline(line("."), newLine)
+
+  else "if applying to provided term
+    let selectedTerm = a:1 
+    let newSelectedTerm = substitute(selectedTerm, regex, replace, flags)
+    return newSelectedTerm
+  endif
+endfunction
+
+function! MdTest(...)
+  " echo MdModifyTerms('', "* Contribute to `core/wiki`; document", ['\<.', '\u\0', 'g'])
+  " echo MdModifyTerms('v', '', ['\<.', '\u\0', 'g'])
+  " echo MdModifyTerms('n', '', ['\<.', '\u\0', 'g'])
+endfunction
+
+
+function! MdTrimSpaces(term)
+  let pattern2 = ['^\s\+', '', 'g']
+  let pattern3 = ['\s\+$', '', 'g']
+
+  let newTerm = MdModifyTerms('', a:term, pattern2)
+  let newTerm = MdModifyTerms('', newTerm, pattern3)
+
+  return newTerm
+endfunction
+
+
+" s/\<./\u&/g
+function! MdCapitalizeFirstLetterInWords(...)
+  let pattern = ['\<.', '\u\0', 'g']
+  if(a:0 > 1 && strlen(a:2) > 0)
+    return MdModifyTerms('', a:2, pattern)
+  else
+    call MdModifyTerms(a:1, '', pattern)
+  endif
+endfunction
+
+function! MdTitlizeWords(...)
+  let pattern = ['[^0-9a-zA-Z]\+', ' ', 'g']
+  if(a:0 > 1 && strlen(a:2) > 0)
+    let newString = MdCapitalizeFirstLetterInWords('', a:2)
+    let newString = MdModifyTerms('', newString, pattern)
+    return MdTrimSpaces(newString)
+
+  else
+    if(a:1 == 'v')
+      let curStringInfo = MdGetSelectedTerm()
+      let curString = curStringInfo[0]
+      let startPos = curStringInfo[1]
+      let endPos = curStringInfo[2]
+    else " == 'n'
+      let curString = getline('.')
+      let startPos = 0
+      let endPos = strlen(curString)
+    end
+
+    let newString = MdCapitalizeFirstLetterInWords('', curString)
+    let newString = MdModifyTerms('', newString, pattern)
+    let newString = MdTrimSpaces(newString)
+
+    call MdReplaceSubstring(line('.'), newString, startPos, endPos)
+  endif
+endfunction
+
 " Shortcuts
-vmap <buffer> qf :call MdMakeFootnotes('v')<CR>
+vmap <buffer> qtf :call MdMakeFootnotes('v')<CR>
 vmap <buffer> qc :call MdMakeCodeBlock()<CR>
 vmap <buffer> qk :call MdMakeLink('v')<CR>
 vmap <buffer> qb :call MdMakeBold('v')<CR>
+vmap <buffer> qfc :call MdCapitalizeFirstLetterInWords('v')<CR>
+vmap <buffer> qft :call MdTitlizeWords('v')<CR>
 
 "nunmap <buffer> qk
+nmap <buffer> qft :call MdTitlizeWords('n')<CR>
+nmap <buffer> qs :call MdSelectTerm('', 'true')<CR>
+nmap <buffer> qfc :call MdCapitalizeFirstLetterInWords()<CR>
 nmap <buffer> qj :call MdResolveSnippet()<CR>
-nmap <buffer> qt :call MdCopyFootnoteReference()<CR>
-nmap <buffer> qr :call MdPasteFootnoteReference()<CR>
-nmap <buffer> <silent> qf :call MdMakeFootnotes('n')<CR>
+nmap <buffer> qtt :call MdCopyFootnoteReference()<CR>
+nmap <buffer> qtr :call MdPasteFootnoteReference()<CR>
+nmap <buffer> <silent> qtf :call MdMakeFootnotes('n')<CR>
 nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
 nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
+nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
