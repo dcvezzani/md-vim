@@ -157,6 +157,7 @@ function! MdMakeLink(mode)
   if a:mode == 'n'
     call MdMarkTerm('[](', ')', 1)
   elseif a:mode == 'v'
+    let @+ = substitute(@+, "\n", '', "")
     if stridx('' . @+, 'http') == 0
       call MdCreateLinkPromptUri('[', '](' . @+ . ')', 3)
     else
@@ -173,10 +174,38 @@ function! MdSplitOnBounds(strValue, start, stop)
   return [preTerm, term, postTerm]
 endfunction
 
+function! MdMakeLinkUsingCurrentTerm02()
+  let mode = 'v'
+  let bounds = MdSelectTerm('\/')
+  let selectedTermInfo = MdGetSelectedTerm()
+
+  let selectedTerm = selectedTermInfo[0]
+  let startPos = selectedTermInfo[1]
+  let endPos = selectedTermInfo[2]
+  
+  let reProtocol = '^[[:alnum:]]\+:\/\/'
+  let @z = '' | normal @z
+  let protocolExists = (match(selectedTerm, reProtocol) == 0)
+
+  if protocolExists == 0
+    let selectedTerm = 'http://' . selectedTerm
+  else
+    let bounds = MdSelectTerm()
+  end
+  
+  " let @z = '' | normal @z
+  let newTerm = MdTitlizeWords(mode)
+  " let @z = 'gv' | normal @z
+
+  let @+ = selectedTerm
+  call MdMakeLink(mode)
+  " return protocolExists
+endfunction
+
 function! MdMakeLinkUsingCurrentTerm(mode)
   let bounds = MdSelectTerm('\/')
   let strParts = MdSplitOnBounds(getline('.'), bounds[0], bounds[1])
-  let newTerm = MdTitlizeWords(strParts[1])
+  let newTerm = MdTitlizeWords('', strParts[1])
 
   call MdMakeLink(a:mode)
   let curPos = getpos('.')
@@ -448,7 +477,13 @@ function! MdCapitalizeFirstLetterInWords(...)
   if(a:0 > 1 && strlen(a:2) > 0)
     return MdModifyTerms('', a:2, pattern)
   else
-    call MdModifyTerms(a:1, '', pattern)
+    if(a:0 > 0)
+      let mode = a:1
+    else
+      let mode = 'n'
+    end
+
+    call MdModifyTerms(mode, '', pattern)
   endif
 endfunction
 
@@ -499,6 +534,7 @@ nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
 nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
 nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
+" nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm02()<CR>
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
