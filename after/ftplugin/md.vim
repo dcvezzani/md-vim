@@ -154,10 +154,10 @@ function! MdMakeImg(mode, ...)
 endfunction
 
 function! MdMakeLink(mode)
+  let @+ = substitute(@+, "\n", '', "")
   if a:mode == 'n'
     call MdMarkTerm('[](', ')', 1)
   elseif a:mode == 'v'
-    let @+ = substitute(@+, "\n", '', "")
     if stridx('' . @+, 'http') == 0
       call MdCreateLinkPromptUri('[', '](' . @+ . ')', 3)
     else
