@@ -203,7 +203,7 @@ function! MdMakeLinkUsingCurrentTerm02()
 endfunction
 
 function! MdMakeLinkUsingCurrentTerm(mode)
-  let bounds = MdSelectTerm('\/')
+  let bounds = MdSelectTerm('\/\.')
   let strParts = MdSplitOnBounds(getline('.'), bounds[0], bounds[1])
   let newTerm = MdTitlizeWords('', strParts[1])
 
