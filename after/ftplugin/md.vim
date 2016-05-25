@@ -137,6 +137,20 @@ function! MdMakeBold(mode)
   endif
 endfunction
 
+function! MdMakeHdr(mode, level)
+  let curPos = getpos('.')
+  let line = substitute(getline("."), "^#\\+\\s*\\(.*\\)$", "\\1", "")
+  call setline(".", line)
+  call setpos('.', [curPos[0], curPos[1], 0, curPos[3]])
+
+  if a:mode == 'n'
+    call MdMarkTerm(repeat('#', a:level).' ', '', 1)
+  elseif a:mode == 'v'
+    call MdMarkTerms(repeat('#', a:level).' ', '', 3)
+  endif
+  call setpos('.', [curPos[0], curPos[1], a:level+2, curPos[3]])
+endfunction
+
 function! MdMakeImg(mode, ...)
   let path = ''
   if a:0 > 0
@@ -539,6 +553,11 @@ nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
 nmap <buffer> qb :call MdMakeBold('n')<CR>
+nmap <buffer> qh2 :call MdMakeHdr('n', 2)<CR>
+nmap <buffer> qh3 :call MdMakeHdr('n', 3)<CR>
+nmap <buffer> qh4 :call MdMakeHdr('n', 4)<CR>
+nmap <buffer> qh5 :call MdMakeHdr('n', 5)<CR>
+nmap <buffer> qh6 :call MdMakeHdr('n', 6)<CR>
 nmap <buffer> q= :call MdMakeH1()<CR>
 nmap <buffer> q- :call MdMakeH2()<CR>
 nmap <buffer> qlf :call MdFixOrderedList()<CR>
