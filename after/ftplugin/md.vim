@@ -427,7 +427,7 @@ function! MdResolveSnippet()
   elseif term == 'dts'
     let newTerm = substitute(term, '.*', strftime("%Y-%m-%dT%H:%M:%S"), '')
   elseif term == 'dts2'
-    let theDate = substitute(strftime("%A, %B %e %Y"), '  *', ' ', 'g')
+    let theDate = substitute(strftime("%A, %B %e %Y; %H:%M %Z"), '  *', ' ', 'g')
     let newTerm = substitute(term, '.*', theDate, '')
   endif
 
