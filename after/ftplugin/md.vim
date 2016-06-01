@@ -426,6 +426,9 @@ function! MdResolveSnippet()
     let newTerm = substitute(term, '.*', strftime("%Y-%m-%d"), '')
   elseif term == 'dts'
     let newTerm = substitute(term, '.*', strftime("%Y-%m-%dT%H:%M:%S"), '')
+  elseif term == 'dts2'
+    let theDate = substitute(strftime("%A, %B %e %Y"), '  *', ' ', 'g')
+    let newTerm = substitute(term, '.*', theDate, '')
   endif
 
   call MdReplaceSubstring(line('.'), newTerm, bounds[0], bounds[1])
