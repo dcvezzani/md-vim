@@ -181,6 +181,15 @@ function! MdMakeLink(mode)
   endif
 endfunction
 
+function! MdMakeLiDone(mode)
+  let @+ = substitute(@+, "\n", '', "")
+  if a:mode == 'n'
+    call MdMarkLine('<li class="done">', '</li>', 1)
+  elseif a:mode == 'v'
+    call MdCreateLinkPromptUri('[', '](' . @+ . ')', 3)
+  endif
+endfunction
+
 function! MdSplitOnBounds(strValue, start, stop)
   let preTerm = strpart(a:strValue, 0, a:start - 1)
   let term = strpart(a:strValue, a:start - 1, a:stop - a:start + 1)
@@ -228,11 +237,29 @@ function! MdMakeLinkUsingCurrentTerm(mode)
   call setpos('.', [curPos[0], curPos[1]+1, 0, curPos[3]])
 endfunction
 
-function! MdMarkLine(character)
-  let line = substitute(getline("."), "\\s\\+$", "", "")
-  let newLine = substitute(line, ".*", a:character.'\0'.a:character, "")
-  call setline(".", newLine)
+function! MdMarkTerm(character, ...)
+  let origPos = getpos('.')
+  let characterEnd = a:character
+
+  if a:0 > 0
+    let characterEnd = a:1
+  endif
+
+  " mark word boundaries using 'surround' plugin
+  let bounds = MdSelectTerm()
+
+  call MdMarkTermExt(origPos[1], bounds[0], bounds[1], a:character, characterEnd)
+
+  let posOffset = strlen(a:character)
+  if a:0 > 1
+    let posOffset = a:2
+  endif
+
+  " put cursor back where it was before (relatively)
+  let newPos = [origPos[0], origPos[1], col("'<") + posOffset, origPos[3]]
+  call setpos('.', newPos)
 endfunction
+
 
 function! MdMakeCodeBlock()
   echo ""
@@ -531,6 +558,73 @@ function! MdTitlizeWords(...)
   endif
 endfunction
 
+
+" Temp functions
+" when managing unordered lists, easily mark the list item as 'done'
+" requires a style to be defined for li and li.done
+function! MdSelectLine(...)
+  let curPos = getpos('.')
+  let curLen = len(getline('.'))
+  let startCol = 1
+  let stopCol = curLen
+
+  call setpos('.', [curPos[0], curPos[1], startCol, 0])
+  let @z = 'v' | normal @z
+  call setpos('.', [curPos[0], curPos[1], stopCol, 0])
+ 
+  if(a:0 > 0 && a:1 != 'true')
+    let @z = '' | normal @z
+  endif
+ 
+  return [startCol, stopCol]
+endfunction
+
+function! MdMarkLine(character, ...)
+  let origPos = getpos('.')
+  let characterEnd = a:character
+
+  if a:0 > 0
+    let characterEnd = a:1
+  endif
+
+  let bounds = MdSelectLine('false')
+  
+  call MdMarkTermExt(origPos[1], bounds[0], bounds[1], a:character, characterEnd)
+
+  let posOffset = strlen(a:character)
+  if a:0 > 1
+    let posOffset = a:2
+  endif
+
+  " put cursor back where it was before (relatively)
+  let newPos = [origPos[0], origPos[1], col("'<") + posOffset, origPos[3]]
+  call setpos('.', newPos)
+endfunction
+
+function! MdMakeLiDone(mode)
+  "let @+ = substitute(@+, "\n", '', "")
+  let line = line(".")
+  let newLine = substitute(getline("."), "^\*\\s*\\(.*\\)$", "\\1", "")
+  call setline(line, newLine)
+  
+  let startToken = '<li class="done">'
+  let endToken = '</li>'
+  let lenStartToken = strlen(startToken)
+  if a:mode == 'n'
+    call MdMarkLine(startToken, endToken, 1)
+
+    " post work; position at beginning of line
+    " and keep there when moving cursor
+    let curPos = getpos('.')
+    call setpos('.', [curPos[0], curPos[1]+1, 1, 0])
+    let @z = '^' | normal @z
+    
+  elseif a:mode == 'v'
+    call MdMarkTerms(startToken, endToken, lenStartToken)
+  endif
+endfunction
+
+
 " Shortcuts
 vmap <buffer> qtf :call MdMakeFootnotes('v')<CR>
 vmap <buffer> qc :call MdMakeCodeBlock()<CR>
@@ -555,6 +649,7 @@ nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
+nmap <buffer> qld :call MdMakeLiDone('n')<CR>
 nmap <buffer> qb :call MdMakeBold('n')<CR>
 nmap <buffer> qh2 :call MdMakeHdr('n', 2)<CR>
 nmap <buffer> qh3 :call MdMakeHdr('n', 3)<CR>
