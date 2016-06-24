@@ -558,10 +558,6 @@ function! MdTitlizeWords(...)
   endif
 endfunction
 
-
-" Temp functions
-" when managing unordered lists, easily mark the list item as 'done'
-" requires a style to be defined for li and li.done
 function! MdSelectLine(...)
   let curPos = getpos('.')
   let curLen = len(getline('.'))
@@ -601,6 +597,10 @@ function! MdMarkLine(character, ...)
   call setpos('.', newPos)
 endfunction
 
+
+" Temp functions
+" when managing unordered lists, easily mark the list item as 'done'
+" requires a style to be defined for li and li.done
 function! MdMakeLiDone(mode)
   "let @+ = substitute(@+, "\n", '', "")
   let line = line(".")
