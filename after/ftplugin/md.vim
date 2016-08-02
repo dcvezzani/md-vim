@@ -326,11 +326,19 @@ function! MdMakeFootnotesVis()
   call setline(line, newLine)
 endfunction
 
-function! MdMakeUnorderedList()
+function! MdMakeUnorderedList(...)
   echo ""
+
+  if a:0 > 0
+    let prefix = a:1
+  else
+    let prefix = ''
+  endif
+  
   let line = line(".")
+  "let @b = '$bdir/'
   while getline(line) !~ "^\\s*$"
-    let newLine = substitute(getline(line), ".*", '* \0', "")
+    let newLine = substitute(getline(line), ".*", '* '.prefix.'\0', "")
     call setline(line, newLine)
 
     let line = line + 1
@@ -648,6 +656,7 @@ nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 " nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm02()<CR>
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
+nmap <buffer> qll :call MdMakeUnorderedList(@b)<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
 nmap <buffer> qld :call MdMakeLiDone('n')<CR>
 nmap <buffer> qb :call MdMakeBold('n')<CR>
