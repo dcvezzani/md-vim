@@ -30,7 +30,7 @@ function! MdSelectTerm(...)
   let reTermBoundaries = '[:space:]'
 
   if(a:0 > 0 && strlen(a:1) > 0)
-    let reTermBoundaries = '[:space:]' . a:1
+    let reTermBoundaries = a:1
   endif
 
   let atWordBoundary = (match(strpart(getline('.'), col('.')-2, 1), '[' . reTermBoundaries . ']') == 0)
@@ -199,7 +199,7 @@ endfunction
 
 function! MdMakeLinkUsingCurrentTerm02()
   let mode = 'v'
-  let bounds = MdSelectTerm('\/')
+  let bounds = MdSelectTerm('[:space:]\/')
   let selectedTermInfo = MdGetSelectedTerm()
 
   let selectedTerm = selectedTermInfo[0]
@@ -226,7 +226,7 @@ function! MdMakeLinkUsingCurrentTerm02()
 endfunction
 
 function! MdMakeLinkUsingCurrentTerm(mode)
-  let bounds = MdSelectTerm('\/\.#')
+  let bounds = MdSelectTerm('[:space:]\/\.#')
   let strParts = MdSplitOnBounds(getline('.'), bounds[0], bounds[1])
   let newTerm = MdTitlizeWords('', strParts[1])
 
@@ -453,7 +453,7 @@ endfunction
 function! MdResolveSnippet()
   echo ""
 
-  let bounds = MdSelectTerm('()\[\]<>\"', 'false')
+  let bounds = MdSelectTerm('[:space:]()\[\]<>\"', 'false')
   let term = strpart(getline('.'), bounds[0]-1, bounds[1]-(bounds[0]-1))
 
   let newTerm = ''
