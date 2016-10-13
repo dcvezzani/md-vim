@@ -326,8 +326,26 @@ function! MdMakeFootnotesVis()
   call setline(line, newLine)
 endfunction
 
-function! MdMakeUnorderedList(...)
+" Create lists.  Stops at the first empty line.  If bullets of the current type
+" are encountered they are reformatted so that ul removes extra white space
+" from the front or existing ol bullets are renumbered.
+"
+" a:1; prefix: prepend value after the bullet
+" a:2; bullet: character or string representing the bullet; default value: '*'
+" a:3; list_type: ol | ul; ol: ordered list (numbers); ul: unordered list
+"
+" " make an unordered list (*)
+" call call("MdMakeList", [ '', '', 'ul' ])
+"
+" " make an ordered list (numbers)
+" call call("MdMakeList", [ '', '', 'ol' ])
+"
+" " make a non-md list using a custom bullet
+" call call("MdMakeList", [ '', '-' ])
+
+function! MdMakeList(...)
   echo ""
+  let cnt = 1
 
   if a:0 > 0
     let prefix = a:1
@@ -335,27 +353,60 @@ function! MdMakeUnorderedList(...)
     let prefix = ''
   endif
   
+  if ((a:0 > 2) && (a:3 == 'ol'))
+    let list_type = a:3
+  else
+    let list_type = 'ul'
+  endif
+  
+  if ((a:0 > 1) && (strlen(a:2) > 0))
+    let bullet = a:2
+  else
+    let bullet = '*'
+  endif
+  
+  let line_count = line('$')
   let line = line(".")
   "let @b = '$bdir/'
-  while getline(line) !~ "^\\s*$"
-    let newLine = substitute(getline(line), ".*", '* '.prefix.'\0', "")
-    call setline(line, newLine)
+  while ((getline(line) !~ '^\s*$') && (line < line_count))
+    if (list_type == 'ol')
+      let bullet = cnt.'.'
+    endif
 
-    let line = line + 1
-  endwhile
-endfunction
+    if (list_type == 'ul')
+      let newLine = getline(line)
+      if(newLine =~ '^\'.bullet.'\s.*$')
+        let newLine = substitute(newLine, '^\'.bullet.'\s*\(.*\)$', '\1', "")
+      endif
 
-function! MdMakeOrderedList()
-  echo ""
-  let cnt = 1
-  let line = line(".")
-  while getline(line) !~ "^\\s*$"
-    let newLine = substitute(getline(line), ".*", cnt.'. \0', "")
-    call setline(line, newLine)
+      let newLine = substitute(newLine, ".*", bullet.' '.prefix.'\0', "")
+      call setline(line, newLine)
+
+    elseif (list_type == 'ol')
+      let newLine = getline(line)
+      if(newLine =~ '^[0-9]\+\. .*$')
+        let newLine = substitute(newLine, '^[0-9]*\.\s*\(.*\)$', '\1', "")
+      endif
+
+      let newLine = substitute(newLine, ".*", bullet.' '.prefix.'\0', "")
+      call setline(line, newLine)
+    endif
 
     let cnt = cnt + 1
     let line = line + 1
   endwhile
+endfunction
+
+function! MdMakeListDash(...)
+  call call("MdMakeList", [ '', '-' ])
+endfunction
+
+function! MdMakeUnorderedList()
+  call call("MdMakeList", [ '', '', 'ul' ])
+endfunction
+
+function! MdMakeOrderedList()
+  call call("MdMakeList", [ '', '', 'ol' ])
 endfunction
 
 function! MdFixOrderedList()
@@ -659,6 +710,7 @@ nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qll :call MdMakeUnorderedList(@b)<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
 nmap <buffer> qld :call MdMakeLiDone('n')<CR>
+nmap <buffer> qli :call MdMakeListDash()<CR>
 nmap <buffer> qb :call MdMakeBold('n')<CR>
 nmap <buffer> qh2 :call MdMakeHdr('n', 2)<CR>
 nmap <buffer> qh3 :call MdMakeHdr('n', 3)<CR>
