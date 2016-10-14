@@ -261,11 +261,48 @@ function! MdMarkTerm(character, ...)
 endfunction
 
 
-function! MdMakeCodeBlock()
+function! MdMakeCodeBlock(...) range
   echo ""
-  let line = line(".")
-  let newLine = substitute(getline(line), ".*", '    \0', "")
-  call setline(line, newLine)
+  let flush_left = 0
+
+  let @g = string(a:1)
+  " determine code block style
+  " 0: indent
+  " 1: flush left, use ``` block
+  if a:0 > 0
+    if a:1 == 'true'
+      let flush_left = 1
+    endif
+  endif
+  
+  if flush_left == 0
+    let line = line(".")
+    let newLine = substitute(getline(line), ".*", '    \0', "")
+    call setline(line, newLine)
+
+  else
+    " ensure normal mode
+    let @z = '' | normal @z
+
+    " remember row positions of highlighted text
+    let start_row = line("'<")
+    let stop_row = line("'>")
+
+    call append(stop_row, '```')
+
+    let origPos = getpos('.')
+    call setpos('.', [origPos[0], start_row, 0, origPos[3]])
+    let @z = 'O' | normal @z
+    call setline('.', '```')
+
+    " place cursor before code block
+    let focus_row = 0
+    if start_row > 0
+      let focus_row = start_row-1
+    endif
+
+    call setpos('.', [origPos[0], focus_row, 0, origPos[3]])
+  endif
 endfunction
 
 function! MdCopyFootnoteReference()
@@ -686,7 +723,7 @@ endfunction
 
 " Shortcuts
 vmap <buffer> qtf :call MdMakeFootnotes('v')<CR>
-vmap <buffer> qc :call MdMakeCodeBlock()<CR>
+vmap <buffer> qc :call MdMakeCodeBlock('true')<CR>
 vmap <buffer> qk :call MdMakeLink('v')<CR>
 vmap <buffer> qb :call MdMakeBold('v')<CR>
 vmap <buffer> qfc :call MdCapitalizeFirstLetterInWords('v')<CR>
