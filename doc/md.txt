@@ -14,7 +14,7 @@ CONTENTS                                            *MarkdownContents*
 
     1. Usage ................ |MarkdownUsage|
     2. Mappings ............. |MarkdownMappings|
-    2. Blah ................. |MarkdownBlah2|
+    3. Funtions ............. |MarkdownFunctions|
 
 ====================================================================
 Section 1: Usage                                       *MarkdownUsage*
@@ -34,9 +34,13 @@ Visual shortcuts
   vmap <buffer>          qc     :call MdMakeCodeBlock()<CR>
   vmap <buffer>          qk     :call MdMakeLink('v')<CR>
   vmap <buffer>          qb     :call MdMakeBold('v')<CR>
+  vmap <buffer>          qfc    :call MdCapitalizeFirstLetterInWords('v')<CR>
+  vmap <buffer>          qft    :call MdTitlizeWords('v')<CR>
 
 Normal shortcuts
 
+  nmap <buffer>          qft    :call MdTitlizeWords('n')<CR>
+  nmap <buffer>          qs     :call MdSelectTerm('', 'true')<CR>
   nmap <buffer>          qfc    :call MdCapitalizeFirstLetterInWords()<CR>
   nmap <buffer>          qj     :call MdResolveSnippet()<CR>
   nmap <buffer>          qtt    :call MdCopyFootnoteReference()<CR>
@@ -57,6 +61,92 @@ Normal shortcuts
   nmap <buffer>          qP     !mdprev --pdf %<CR><CR>
 
 ====================================================================
-Section 3: Blah                                 *MarkdownBlah2*
+Section 3: Functions                               *MarkdownFunctions*
 
-blah
+  |MdMakeH1|()
+  |MdMakeH2|()
+  |MdMakeHeader|(character)
+  |MdSelectTerm|(...)
+  |MdMarkTerm|(character, ...)
+  |MdCreateLinkPromptUri|(...)
+  |MdMarkTerms|(...)
+  |MdMarkTermExt|(lineIndex, start, stop, characterStart, characterEnd)
+  |MdMarkInlineCode|()
+  |function|! MdMakeBold()
+  |MdMakeBold|(mode)
+  |MdMakeImg|(mode, ...)
+  |MdMakeLink|(mode)
+  |MdSplitOnBounds|(strValue, start, stop)
+  |MdMakeLinkUsingCurrentTerm|(mode)
+  |MdMarkLine|(character)
+  |MdMakeCodeBlock|()
+  |MdCopyFootnoteReference|()
+  |MdPasteFootnoteReference|()
+  |MdMakeFootnotes|(mode)
+  |MdMakeFootnotesNorm|(...)
+  |MdMakeFootnotesVis|()
+  |MdMakeUnorderedList|()
+  |MdMakeOrderedList|()
+  |MdFixOrderedList|()
+  |MdFoldLevel|(lnum)
+  |MdFoldText|()
+  |MdFold|()
+  |MdReplaceSubstring|(line, subString, startPos, endPos)
+  |MdResolveSnippet|()
+  |MdGetSelectedTerm|()
+  |MdModifyTerms|(mode, ...)
+  |MdTest(...)
+  |MdTrimSpaces|(term)
+  |MdCapitalizeFirstLetterInWords|(...)
+  |MdTitlizeWords|(...)
+
+*MdMakeH1* (), *MdMakeH2* ()
+
+Create headers from text on current line.  H1 headers use '=', H2 headers use '-'.
+
+e.g., 
+
+This is a title
+===============
+
+*MdMakeHeader* (character)
+
+Used by MdMakeH1, MdMakeH2.
+
+*MdSelectTerm* (...)
+
+Select the term under the cursor.  By default, term boundaries consist of white space and the bounds of a line ('^' and '$'; start of the line, end of the line).
+
+*MdMarkTerm* (character, ...)
+*MdCreateLinkPromptUri* (...)
+*MdMarkTerms* (...)
+*MdMarkTermExt* (lineIndex, start, stop, characterStart, characterEnd)
+*MdMarkInlineCode* ()
+*function*! MdMakeBold()
+*MdMakeBold* (mode)
+*MdMakeImg* (mode, ...)
+*MdMakeLink* (mode)
+*MdSplitOnBounds* (strValue, start, stop)
+*MdMakeLinkUsingCurrentTerm* (mode)
+*MdMarkLine* (character)
+*MdMakeCodeBlock* ()
+*MdCopyFootnoteReference* ()
+*MdPasteFootnoteReference* ()
+*MdMakeFootnotes* (mode)
+*MdMakeFootnotesNorm* (...)
+*MdMakeFootnotesVis* ()
+*MdMakeUnorderedList* ()
+*MdMakeOrderedList* ()
+*MdFixOrderedList* ()
+*MdFoldLevel* (lnum)
+*MdFoldText* ()
+*MdFold* ()
+*MdReplaceSubstring* (line, subString, startPos, endPos)
+*MdResolveSnippet* ()
+*MdGetSelectedTerm* ()
+*MdModifyTerms* (mode, ...)
+*MdTest* (...)
+*MdTrimSpaces* (term)
+*MdCapitalizeFirstLetterInWords* (...)
+*MdTitlizeWords* (...)
+
