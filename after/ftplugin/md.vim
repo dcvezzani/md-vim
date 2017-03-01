@@ -758,5 +758,7 @@ nmap <buffer> q= :call MdMakeH1()<CR>
 nmap <buffer> q- :call MdMakeH2()<CR>
 nmap <buffer> qlf :call MdFixOrderedList()<CR>
 nmap <buffer> qz :call MdFold()<CR>
+" nunmap qp
+" nunmap qP
 nmap <buffer> qp :!mdprev %<CR><CR>
 nmap <buffer> qP :!mdprev --pdf %<CR><CR>
