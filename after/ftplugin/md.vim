@@ -737,8 +737,10 @@ nmap <buffer> qj :call MdResolveSnippet()<CR>
 nmap <buffer> qtt :call MdCopyFootnoteReference()<CR>
 nmap <buffer> qtr :call MdPasteFootnoteReference()<CR>
 nmap <buffer> <silent> qtf :call MdMakeFootnotes('n')<CR>
-nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
-nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
+"nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
+"nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
+nmap <buffer> qi :call MdMakeImg('n', '')<CR>
+nmap <buffer> qI :call MdMakeImg('i', '')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
 nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 " nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm02()<CR>
