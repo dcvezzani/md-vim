@@ -438,6 +438,20 @@ function! MdMakeListDash(...)
   call call("MdMakeList", [ '', '-' ])
 endfunction
 
+function! MdMakeListCheckbox(...)
+  let snippet = '- [ ]'
+  
+  if ((a:0 > 0) && (a:1 == 'checked'))
+    let snippet = '- [x]'
+  endif
+  
+  call call("MdMakeList", [ '', snippet ])
+endfunction
+
+function! MdMakeListCheckboxChecked(...)
+  call call("MdMakeList", [ '', '- [x]' ])
+endfunction
+
 function! MdMakeUnorderedList()
   call call("MdMakeList", [ '', '', 'ul' ])
 endfunction
@@ -549,7 +563,12 @@ function! MdResolveSnippet()
     let newTerm = substitute(term, '.*', strftime("%Y-%m-%d"), '')
   elseif term == 'dts'
     let newTerm = substitute(term, '.*', strftime("%Y-%m-%dT%H:%M:%S"), '')
+  elseif term == 'tds'
+    let newTerm = substitute(term, '.*', strftime("%Y-%m-%dT%H:%M:%S"), '')
   elseif term == 'dts2'
+    let theDate = substitute(strftime("%A, %B %e %Y; %H:%M %Z"), '  *', ' ', 'g')
+    let newTerm = substitute(term, '.*', theDate, '')
+  elseif term == 'tds2'
     let theDate = substitute(strftime("%A, %B %e %Y; %H:%M %Z"), '  *', ' ', 'g')
     let newTerm = substitute(term, '.*', theDate, '')
   endif
@@ -625,6 +644,16 @@ function! MdCapitalizeFirstLetterInWords(...)
 
     call MdModifyTerms(mode, '', pattern)
   endif
+endfunction
+
+function! MdSentence(...)
+  let curString = getline('.')
+  let startPos = 0
+  let endPos = strlen(curString)
+  let newString = substitute(getline('.'), '^.', '\u&', '')
+  let newString = substitute(newString, '\([^\.\?\!]\)$', '\1\.', '')
+  let endPos = strlen(newString)
+  call MdReplaceSubstring(line('.'), newString, startPos, endPos)
 endfunction
 
 function! MdTitlizeWords(...)
@@ -720,6 +749,47 @@ function! MdMakeLiDone(mode)
   endif
 endfunction
 
+function! MdSelectBlock()
+  let @z = 'V/\n\nkj' | normal @z
+endfunction
+
+
+let g:re_standup_bullet = "^[-\\*] \\(\\[[ x]\\] \\+\\)*[◐◑● ]*\\(.*\\)"
+let g:re_work_log_entry = "^\\([^; ]\\+\\); *\\(.*\\)"
+function! MdRemoveBullet()
+  let line = substitute(getline("."), g:re_standup_bullet, "\\2", "")
+  call setline(line("."), line)
+endfunction
+
+function! MdReplaceBulletYesterday()
+  let line = substitute(getline("."), g:re_standup_bullet, "\\2", "")
+  call setline(line("."), '- ◐ ' . line)
+endfunction
+
+function! MdReplaceBulletToday()
+  let line = substitute(getline("."), g:re_standup_bullet, "\\2", "")
+  call setline(line("."), '- ◑ ' . line)
+endfunction
+
+function! MdReplaceBulletYesterdayAndToday()
+  let line = substitute(getline("."), g:re_standup_bullet, "\\2", "")
+  call setline(line("."), '- ● ' . line)
+endfunction
+
+function! MdAddTimeSpent()
+  let line = substitute(getline("."), g:re_work_log_entry, "\\2", "")
+  let timeSpent = substitute(getline("."), g:re_work_log_entry, "\\1", "")
+
+  if(strlen(timeSpent) > 0 && (match(timeSpent, "^[0-9\\.]\\+$") == 0))
+    let timeSpent = str2float(timeSpent,10) + 0.5
+    call setline(line("."), timeSpent . '; ' . line)
+  else
+    call setline(line("."), '0.5; ' . timeSpent . '; ' . line)
+  endif
+  
+echo timeSpent
+endfunction
+
 
 " Shortcuts
 vmap <buffer> qtf :call MdMakeFootnotes('v')<CR>
@@ -731,16 +801,17 @@ vmap <buffer> qft :call MdTitlizeWords('v')<CR>
 
 "nunmap <buffer> qk
 nmap <buffer> qft :call MdTitlizeWords('n')<CR>
+nmap <buffer> qfs :call MdSentence('n')<CR>
 nmap <buffer> qs :call MdSelectTerm('', 'true')<CR>
 nmap <buffer> qfc :call MdCapitalizeFirstLetterInWords()<CR>
 nmap <buffer> qj :call MdResolveSnippet()<CR>
 nmap <buffer> qtt :call MdCopyFootnoteReference()<CR>
 nmap <buffer> qtr :call MdPasteFootnoteReference()<CR>
 nmap <buffer> <silent> qtf :call MdMakeFootnotes('n')<CR>
-"nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
-"nmap <buffer> qI :call MdMakeImg('i', 'images/')<CR>
-nmap <buffer> qi :call MdMakeImg('n', '')<CR>
-nmap <buffer> qI :call MdMakeImg('i', '')<CR>
+nmap <buffer> qi :call MdMakeImg('n', 'images/')<CR>
+nmap <buffer> qI :!/Users/dcvezzani/scripts/rename-images.sh<CR>
+"nmap <buffer> qi :call MdMakeImg('n', '')<CR>
+"nmap <buffer> qI :call MdMakeImg('i', '')<CR>
 nmap <buffer> qk :call MdMakeLink('n')<CR>i
 nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 " nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm02()<CR>
@@ -749,7 +820,24 @@ nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
 nmap <buffer> qll :call MdMakeUnorderedList(@b)<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
 nmap <buffer> qld :call MdMakeLiDone('n')<CR>
+
+nmap <buffer> qls :call MdSelectBlock()<CR>
+
+nmap <buffer> qly :call MdReplaceBulletYesterday()<CR>
+nmap <buffer> qlt :call MdReplaceBulletToday()<CR>
+nmap <buffer> qlb :call MdReplaceBulletYesterdayAndToday()<CR>
+nmap <buffer> qln :call MdRemoveBullet()<CR>
+nmap <buffer> qlj :call MdAddTimeSpent()<CR>
+
+vmap <buffer> qly :call MdReplaceBulletYesterday()<CR>
+vmap <buffer> qlt :call MdReplaceBulletToday()<CR>
+vmap <buffer> qlb :call MdReplaceBulletYesterdayAndToday()<CR>
+vmap <buffer> qln :call MdRemoveBullet()<CR>
+vmap <buffer> qlj :call MdAddTimeSpent()<CR>
+
 nmap <buffer> qli :call MdMakeListDash()<CR>
+nmap <buffer> qlx :call MdMakeListCheckbox()<CR>
+nmap <buffer> qlX :call MdMakeListCheckbox('checked')<CR>
 nmap <buffer> qb :call MdMakeBold('n')<CR>
 nmap <buffer> qh2 :call MdMakeHdr('n', 2)<CR>
 nmap <buffer> qh3 :call MdMakeHdr('n', 3)<CR>
