@@ -335,25 +335,18 @@ function! MdMakeFootnotes(mode)
 endfunction
 
 function! MdMakeFootnotesNorm(...)
-  echo ""
-  let b:mdMakeFootnotesNorm_offset = 0
-
-  if a:0 > 0
-    let b:mdMakeFootnotesNorm_offset = a:1 - 1
-  else
-    let curLine = line('.')
-    let curLineContent = getline(curLine)
-
-    let startCnt = matchstr(curLineContent, '^\d\+')
-    if strlen(startCnt) > 0
-      let b:mdMakeFootnotesNorm_offset = 0+startCnt - 1
-      call setline('.', substitute(curLineContent, '^\d\+', '', ''))
-    endif
-  endif
+  let line_count = line('$')
+  let line = line(".")
+  let cnt = 1
   
-  " http://vimdoc.sourceforge.net/htmldoc/pattern.html#/\zs
-  " https://www.reddit.com/r/vim/comments/1t8q9k/how_do_i_increment_numbers_on_concecutive_lines/
-  let @z = 'gv:s/[\*[:space:]]*<a name=\"footnote-\zs\d\+/\=' . "(b:mdMakeFootnotesNorm_offset + line('.')" . '-line("' . "'" . '<")+1)/gv:s/^[\*[:space:]]*<a name=\"footnote-\d\+\">\zs\d\+/\=' . "(b:mdMakeFootnotesNorm_offset + line('.')" . '-line("' . "'" . '<")+1)/`<' | normal @z
+  "let @b = '$bdir/'
+  while ((getline(line) !~ '^\s*$') && (line < line_count))
+    let curPos = getpos('.')
+    let cnt = cnt + 1
+    let line = line + 1
+    call MdMakeFootnotesVis()
+    call setpos('.', [curPos[0], curPos[1]+1, 0, curPos[3]])
+  endwhile
 endfunction
 
 function! MdMakeFootnotesVis()
@@ -361,6 +354,38 @@ function! MdMakeFootnotesVis()
   let line = line(".")
   let newLine = substitute(getline(line), ".*", '* <a name="footnote-' . line . '">' . line . '</a>: \0', "")
   call setline(line, newLine)
+endfunction
+
+function! MdHideContent(mode) range
+  if a:mode == 'v'
+    call MdHideContentVis()
+  else
+    call MdHideContentNorm()
+  endif
+endfunction
+
+function! MdHideContentNorm()
+  let line_count = line('$')
+  let line = line(".")
+  let origPos = getpos('.')
+  
+  while ((getline(line) !~ '^\s*$') && (line < line_count))
+    let line = line + 1
+  endwhile
+
+  call MdHideContentAux(origPos[1]-1, line)
+endfunction
+
+function! MdHideContentVis() range
+  let start_row = line("'<")
+  let stop_row = line("'>")
+
+  call MdHideContentAux(start_row-1, stop_row+1)
+endfunction
+
+function! MdHideContentAux(start_row, stop_row) range
+  call append(a:start_row, '<div style="display: none;">')
+  call append(a:stop_row, '</div>')
 endfunction
 
 " Create lists.  Stops at the first empty line.  If bullets of the current type
@@ -410,21 +435,20 @@ function! MdMakeList(...)
       let bullet = cnt.'.'
     endif
 
-    if (list_type == 'ul')
-      let newLine = getline(line)
-      if(newLine =~ '^\'.bullet.'\s.*$')
-        let newLine = substitute(newLine, '^\'.bullet.'\s*\(.*\)$', '\1', "")
-      endif
+    " let reBulletLeeder = '^[^abcdefghijklmnopqrstuvwyzABCDEFGHIJKLMNOPQRSTUVWYZ0-9]*\(.*\)$'
+    let reBulletLeeder = '^\([0-9]\. \|- \[[^\]*]\] \|- ✅ \|- \|* \)\+\(.*\)$'
 
+    let newLine = getline(line)
+    if(newLine =~ reBulletLeeder)
+      let newLine = substitute(newLine, reBulletLeeder, '\2', "")
+    endif
+    
+
+    if (list_type == 'ul')
       let newLine = substitute(newLine, ".*", bullet.' '.prefix.'\0', "")
       call setline(line, newLine)
 
     elseif (list_type == 'ol')
-      let newLine = getline(line)
-      if(newLine =~ '^[0-9]\+\. .*$')
-        let newLine = substitute(newLine, '^[0-9]*\.\s*\(.*\)$', '\1', "")
-      endif
-
       let newLine = substitute(newLine, ".*", bullet.' '.prefix.'\0', "")
       call setline(line, newLine)
     endif
@@ -443,6 +467,7 @@ function! MdMakeListCheckbox(...)
   
   if ((a:0 > 0) && (a:1 == 'checked'))
     let snippet = '- [x]'
+    let snippet = '- ✅'
   endif
   
   call call("MdMakeList", [ '', snippet ])
@@ -798,6 +823,7 @@ vmap <buffer> qk :call MdMakeLink('v')<CR>
 vmap <buffer> qb :call MdMakeBold('v')<CR>
 vmap <buffer> qfc :call MdCapitalizeFirstLetterInWords('v')<CR>
 vmap <buffer> qft :call MdTitlizeWords('v')<CR>
+vmap <buffer> qhb :call MdHideContent('v')<CR>
 
 "nunmap <buffer> qk
 nmap <buffer> qft :call MdTitlizeWords('n')<CR>
@@ -817,9 +843,9 @@ nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm('n')<CR>
 " nmap <buffer> qK :call MdMakeLinkUsingCurrentTerm02()<CR>
 nmap <buffer> qc :call MdMarkInlineCode()<CR>
 nmap <buffer> qlu :call MdMakeUnorderedList()<CR>
-nmap <buffer> qll :call MdMakeUnorderedList(@b)<CR>
+" nmap <buffer> qll :call MdMakeUnorderedList(@b)<CR>
 nmap <buffer> qlo :call MdMakeOrderedList()<CR>
-nmap <buffer> qld :call MdMakeLiDone('n')<CR>
+" nmap <buffer> qld :call MdMakeLiDone('n')<CR>
 
 nmap <buffer> qls :call MdSelectBlock()<CR>
 
@@ -844,11 +870,12 @@ nmap <buffer> qh3 :call MdMakeHdr('n', 3)<CR>
 nmap <buffer> qh4 :call MdMakeHdr('n', 4)<CR>
 nmap <buffer> qh5 :call MdMakeHdr('n', 5)<CR>
 nmap <buffer> qh6 :call MdMakeHdr('n', 6)<CR>
-nmap <buffer> q= :call MdMakeH1()<CR>
-nmap <buffer> q- :call MdMakeH2()<CR>
+nmap <buffer> qhb :call MdHideContent('n')<CR>
+" nmap <buffer> q= :call MdMakeH1()<CR>
+" nmap <buffer> q- :call MdMakeH2()<CR>
 nmap <buffer> qlf :call MdFixOrderedList()<CR>
 nmap <buffer> qz :call MdFold()<CR>
 " nunmap qp
 " nunmap qP
-nmap <buffer> qp :!mdprev %<CR><CR>
-nmap <buffer> qP :!mdprev --pdf %<CR><CR>
+" nmap <buffer> qp :!mdprev %<CR><CR>
+" nmap <buffer> qP :!mdprev --pdf %<CR><CR>
